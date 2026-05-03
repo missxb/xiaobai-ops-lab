@@ -1641,7 +1641,104 @@ echo "建议: 保持资源使用率在 70% 以下"
 
 ---
 
-## 十二、面试题与思考
+## 十二、HPA 自动扩缩与 PDB 配置
+
+### 12.1 HPA 自动扩缩配置
+
+```yaml
+# hpa-config.yaml - 水平自动扩缩
+deployments:
+  - name: nginx-ingress
+    minReplicas: 3
+    maxReplicas: 20
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Pods
+            value: 4
+            periodSeconds: 60
+          - type: Percent
+            value: 100
+            periodSeconds: 60
+        selectPolicy: Max
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Pods
+            value: 2
+            periodSeconds: 120
+        selectPolicy: Min
+
+  - name: core-dns
+    minReplicas: 2
+    maxReplicas: 5
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+```
+
+### 12.2 PDB 配置
+
+```yaml
+# pdb-config.yaml - Pod 干扰预算
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nginx-ingress
+  namespace: ingress-nginx
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: core-dns
+  namespace: kube-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
+
+---
+# 生产应用 PDB 示例
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-pdb
+  namespace: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: myapp
+```
+
+---
+
+## 十三、面试题与思考
 
 ### Q1: Kubernetes 高可用架构中，为什么需要至少 3 个 Master 节点？
 
