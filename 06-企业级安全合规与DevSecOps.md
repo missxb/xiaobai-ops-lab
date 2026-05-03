@@ -303,6 +303,79 @@ spec:
           port: 443
 ```
 
+```yaml
+# security-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: trivy-license
+  namespace: security
+type: Opaque
+stringData:
+  license: "CHANGE_ME_TO_YOUR_TRIVY_LICENSE"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-token
+  namespace: security
+type: Opaque
+stringData:
+  token: "CHANGE_ME_TO_VAULT_TOKEN"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitleaks-config
+  namespace: security
+type: Opaque
+stringData:
+  gitleaks.toml: |
+    # Gitleaks configuration
+    [allowlist]
+      description = "Global allowlist"
+      paths = ["'''", "test/secrets/test"]
+```
+
+```yaml
+# security-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: security-ingress
+  namespace: security
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - sonarqube.example.com
+        - trivy.example.com
+      secretName: security-tls
+  rules:
+    - host: sonarqube.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sonarqube
+                port:
+                  number: 9000
+    - host: trivy.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: trivy-server
+                port:
+                  number: 8080
+```
+
 ### 3.2 Trivy 完整扫描脚本
 
 ```bash
@@ -462,6 +535,42 @@ main "$@"
 ```
 
 ---
+
+---
+
+## 三.5 安全告警规则
+
+```yaml
+# security-alerts.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: security-alerts
+  namespace: security
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: security.rules
+      rules:
+        - alert: TrivyVulnerabilityCritical
+          expr: trivy_vulnerabilities{severity="CRITICAL"} > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Trivy 发现严重漏洞"
+            description: "镜像 {{ $labels.image }} 发现 {{ $value }} 个严重漏洞"
+        - alert: GitleaksSecretDetected
+          expr: gitleaks_events_total > 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Gitleaks 检测到密钥泄露"
+            description: "在仓库 {{ $labels.repo }} 中检测到密钥泄露"
+```
 
 ## 四、运行时安全 - Falco
 

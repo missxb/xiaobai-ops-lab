@@ -239,6 +239,38 @@ networks:
     driver: bridge
 ```
 
+```yaml
+# harbor-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harbor-admin-secret
+  namespace: harbor
+type: Opaque
+stringData:
+  username: admin
+  password: "CHANGE_ME_TO_STRONG_PASSWORD"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harbor-database-secret
+  namespace: harbor
+type: Opaque
+stringData:
+  username: harbor
+  password: "CHANGE_ME_TO_STRONG_PASSWORD"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harbor-redis-secret
+  namespace: harbor
+type: Opaque
+stringData:
+  password: "CHANGE_ME_TO_STRONG_PASSWORD"
+```
+
 ### 2.2 Harbor 环境变量配置
 
 ```bash

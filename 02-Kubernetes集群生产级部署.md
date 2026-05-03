@@ -749,6 +749,18 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 200Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9099
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 9099
+            initialDelaySeconds: 30
+            periodSeconds: 30
   calicoNodeDaemonSet:
     metadata:
       labels:
@@ -765,6 +777,18 @@ spec:
                 limits:
                   cpu: "1"
                   memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9099
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 9099
+            initialDelaySeconds: 30
+            periodSeconds: 30
   calicoKubeControllersDeployment:
     metadata:
       labels:
@@ -781,6 +805,18 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 500Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9099
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 9099
+            initialDelaySeconds: 30
+            periodSeconds: 30
 
 ---
 apiVersion: operator.tigera.io/v1
@@ -1080,6 +1116,18 @@ resources:
   requests:
     cpu: 100m
     memory: 200Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9099
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 9099
+            initialDelaySeconds: 30
+            periodSeconds: 30
   limits:
     cpu: 300m
     memory: 400Mi
