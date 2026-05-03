@@ -326,7 +326,7 @@ set -euo pipefail
 
 HARBOR_URL="https://harbor.example.com"
 HARBOR_USER="admin"
-HARBOR_PASS="HarborAdmin@2026!"
+HARBOR_PASS="${HARBOR_PASSWORD}"
 LOG_FILE="/var/log/harbor/gc-$(date +%Y%m%d).log"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a ${LOG_FILE}; }
@@ -381,6 +381,8 @@ log "=== 垃圾回收完成 ==="
 variables:
   # 镜像仓库
   HARBOR_URL: "https://harbor.example.com"
+  HARBOR_USER: "${HARBOR_USER}"
+  HARBOR_PASSWORD: "${HARBOR_PASSWORD}"
   HARBOR_PROJECT: "production"
   DOCKER_REGISTRY: "${HARBOR_URL}"
   IMAGE_NAME: "${HARBOR_URL}/${HARBOR_PROJECT}/${CI_PROJECT_NAME}"

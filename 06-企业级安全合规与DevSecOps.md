@@ -233,7 +233,7 @@ set -euo pipefail
 TRIVY_SERVER="trivy-server.security:8080"
 HARBOR_URL="https://harbor.example.com"
 HARBOR_USER="admin"
-HARBOR_PASS="HarborAdmin@2026!"
+HARBOR_PASS="${HARBOR_PASSWORD}"  # 从环境变量读取
 REPORT_DIR="/data/reports/trivy"
 DATE=$(date +%Y%m%d)
 
@@ -836,7 +836,7 @@ configure_secrets_engines() {
     connection_url="{{username}}:{{password}}@tcp(mysql-primary:3306)/" \
     allowed_roles="mydb-role" \
     username="vault" \
-    password="VaultPassword@2026!"
+    password="${VAULT_DB_PASSWORD}"
   
   # 创建数据库角色
   vault write database/roles/mydb-role \

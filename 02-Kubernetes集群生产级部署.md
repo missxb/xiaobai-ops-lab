@@ -340,7 +340,7 @@ ansible_python_interpreter=/usr/bin/python3
   vars:
     etcd_version: "3.5.12"
     etcd_data_dir: /var/lib/etcd
-    etcd_cert_dir: /etc/etcd/pki
+    etcd_cert_dir: /etc/kubernetes/pki/etcd
     
   tasks:
     - name: 创建 etcd 目录
@@ -456,7 +456,7 @@ ETCDCTL="/usr/local/bin/etcdctl"
 BACKUP_DIR="/data/etcd-backup"
 KEEP_DAYS=30
 ETCD_ENDPOINTS="https://10.0.0.21:2379,https://10.0.0.22:2379,https://10.0.0.23:2379"
-CERT_DIR="/etc/etcd/pki"
+CERT_DIR="/etc/kubernetes/pki/etcd"
 
 # 生成文件名
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -517,7 +517,7 @@ set -euo pipefail
 SNAPSHOT_FILE=${1:?用法: $0 <snapshot-file>}
 ETCDCTL="/usr/local/bin/etcdctl"
 ETCD_DATA_DIR="/var/lib/etcd"
-CERT_DIR="/etc/etcd/pki"
+CERT_DIR="/etc/kubernetes/pki/etcd"
 ETCD_ENDPOINTS="https://10.0.0.21:2379,https://10.0.0.22:2379,https://10.0.0.23:2379"
 
 RED='\033[0;31m'
