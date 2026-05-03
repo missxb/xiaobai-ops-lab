@@ -1386,6 +1386,53 @@ echo "=== 回滚完成 ==="
 
 ---
 
+---
+
+## 九.5 Secret 管理
+
+```yaml
+# cluster-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: etcd-encryption-key
+  namespace: kube-system
+type: Opaque
+stringData:
+  key: "CHANGE_ME_TO_32_BYTE_KEY_FOR_ETCD_ENCRYPTION"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-server-encryption-config
+  namespace: kube-system
+type: Opaque
+stringData:
+  encryption-config.yaml: |
+    kind: EncryptionConfig
+    apiVersion: v1
+    resources:
+      - resources: ["secrets"]
+        providers:
+          - aescbc:
+              keys:
+                - name: key1
+                  secret: CHANGE_ME_TO_BASE64_ENCODED_KEY
+          - identity: {}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: calico-etcd-secret
+  namespace: kube-system
+type: Opaque
+stringData:
+  etcd-endpoints: "https://127.0.0.1:2379"
+  etcd-key: /etc/kubernetes/pki/etcd/server.key
+  etcd-cert: /etc/kubernetes/pki/etcd/server.crt
+  etcd-ca: /etc/kubernetes/pki/etcd/ca.crt
+```
+
 ## 十、安全加固
 
 ### 10.1 PodSecurityStandards
@@ -1509,6 +1556,60 @@ rules:
 ```
 
 ---
+
+---
+
+## 十.5 安全上下文配置
+
+```yaml
+# security-context.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-demo
+  namespace: default
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+    supplementalGroups: [4000]
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.9
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+          add: ["NET_BIND_SERVICE"]
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir: {}
+```
+
+```yaml
+# pod-security-standards.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+```
 
 ## 十一、运维手册
 
@@ -1688,6 +1789,66 @@ echo "建议: 保持资源使用率在 70% 以下"
 ```
 
 ---
+
+---
+
+## 十一.5 Kubernetes 集群告警规则
+
+```yaml
+# k8s-cluster-alerts.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k8s-cluster-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: kubernetes.rules
+      rules:
+        - alert: KubernetesNodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kubernetes 节点未就绪"
+            description: "节点 {{ $labels.node }} 未就绪超过 5 分钟"
+        - alert: KubernetesPodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 5 > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod 重启循环"
+            description: "Pod {{ $labels.pod }} 在命名空间 {{ $labels.namespace }} 中重启循环"
+        - alert: KubernetesDeploymentReplicasMismatch
+          expr: kube_deployment_spec_replicas != kube_deployment_status_ready_replicas
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Deployment 副本数不匹配"
+            description: "Deployment {{ $labels.deployment }} 期望 {{ $value }} 个就绪副本"
+        - alert: KubernetesPersistentVolumeUsageHigh
+          expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PV 使用率过高"
+            description: "PV {{ $labels.persistentvolumeclaim }} 使用率 {{ $value | humanizePercentage }}"
+        - alert: KubernetesAPIServerHighLatency
+          expr: histogram_quantile(0.99, rate(apiserver_request_duration_seconds_bucket[5m])) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "API Server 延迟过高"
+            description: "API Server P99 延迟 {{ $value }} 秒"
+```
 
 ## 十二、HPA 自动扩缩与 PDB 配置
 

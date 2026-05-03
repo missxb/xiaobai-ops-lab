@@ -317,6 +317,163 @@ spec:
                   number: 3000
 ```
 
+
+```yaml
+# istio-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istio-reader-service-account
+  namespace: istio-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: istio-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "nodes", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.istio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: istio-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: istio-reader
+subjects:
+  - kind: ServiceAccount
+    name: istio-reader-service-account
+    namespace: istio-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istiod
+  namespace: istio-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: istiod
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.istio.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["security.istio.io"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: istiod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: istiod
+subjects:
+  - kind: ServiceAccount
+    name: istiod
+    namespace: istio-system
+```
+
+
+```yaml
+# istio-health-checks.yaml
+# Istio 组件健康检查配置
+# 注意: Istio Operator 会自动管理控制平面组件的健康检查
+# 以下为手动部署时的健康检查配置参考
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istiod
+  namespace: istio-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: istiod
+  template:
+    metadata:
+      labels:
+        app: istiod
+    spec:
+      serviceAccountName: istiod
+      containers:
+        - name: istiod
+          image: istio/proxyv2:1.20.0
+          ports:
+            - containerPort: 15012
+              name: grpc-xds
+            - containerPort: 15014
+              name: http-monitoring
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 15014
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 15014
+            initialDelaySeconds: 30
+            periodSeconds: 30
+```
+
+
+```yaml
+# istio-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: istio-ca-secret
+  namespace: istio-system
+type: Opaque
+stringData:
+  ca-cert.pem: |
+    -----BEGIN CERTIFICATE-----
+    CHANGE_ME_TO_YOUR_CA_CERTIFICATE
+    -----END CERTIFICATE-----
+  ca-key.pem: |
+    -----BEGIN RSA PRIVATE KEY-----
+    CHANGE_ME_TO_YOUR_CA_PRIVATE_KEY
+    -----END RSA PRIVATE KEY-----
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kiali-secret
+  namespace: istio-system
+type: Opaque
+stringData:
+  username: admin
+  passphrase: "CHANGE_ME_TO_STRONG_PASSWORD"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secret
+  namespace: istio-system
+type: Opaque
+stringData:
+  admin-user: admin
+  admin-password: "CHANGE_ME_TO_STRONG_PASSWORD"
+```
+
 ### 2.2 安装步骤
 
 ```bash
