@@ -426,7 +426,7 @@ cache:
 
 # ===== 模板定义 =====
 .deploy_template: &deploy_template
-  image: bitnami/kubectl:latest
+  image: bitnami/kubectl:1.28.0
   before_script:
     - kubectl config use-context ${KUBE_CONTEXT}
     - kubectl config set-context --current --namespace=${KUBE_NAMESPACE}
@@ -439,7 +439,7 @@ cache:
       -n ${KUBE_NAMESPACE} --timeout=300s
 
 .scan_template: &scan_template
-  image: aquasec/trivy:latest
+  image: aquasec/trivy:0.49.1
   before_script:
     - trivy image --download-db-only
   script:
@@ -452,7 +452,7 @@ cache:
 # ===== Stage 1: 环境检查 =====
 setup:env-check:
   stage: setup
-  image: alpine:latest
+  image: alpine:3.19
   script:
     - echo "=== 环境检查 ==="
     - echo "分支: ${CI_COMMIT_BRANCH}"
@@ -549,7 +549,7 @@ security:trivy-image:
 
 security:code-scan:
   stage: security-scan
-  image: aquasec/trivy:latest
+  image: aquasec/trivy:0.49.1
   script:
     - trivy fs --exit-code 1 --severity HIGH,CRITICAL
       --scanners vuln,misconfig,secret .
@@ -610,7 +610,7 @@ deploy:dev:
 # ===== Stage 7: 集成测试 =====
 test:integration:
   stage: integration-test
-  image: curlimages/curl:latest
+  image: curlimages/curl:8.5.0
   variables:
     TARGET_URL: "https://dev.${CI_PROJECT_NAME}.example.com"
   script:
@@ -655,7 +655,7 @@ deploy:staging:
 # ===== Stage 9: 性能测试 =====
 test:performance:
   stage: performance-test
-  image: grafana/k6:latest
+  image: grafana/k6:0.49.0
   variables:
     TARGET_URL: "https://staging.${CI_PROJECT_NAME}.example.com"
   script:
@@ -722,7 +722,7 @@ deploy:production:
 # ===== Stage 12: 部署后验证 =====
 post:verify:
   stage: post-deploy
-  image: curlimages/curl:latest
+  image: curlimages/curl:8.5.0
   script:
     - |
       echo "=== 生产环境验证 ==="
@@ -741,7 +741,7 @@ post:verify:
 # ===== 清理环境 =====
 stop:dev:
   stage: deploy-dev
-  image: bitnami/kubectl:latest
+  image: bitnami/kubectl:1.28.0
   variables:
     KUBE_CONTEXT: "dev-cluster"
     KUBE_NAMESPACE: "${KUBE_NAMESPACE_DEV}"

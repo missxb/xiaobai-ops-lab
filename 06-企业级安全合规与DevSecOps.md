@@ -107,7 +107,7 @@
 # .gitlab-ci.yml - GitLeaks 扫描
 gitleaks-scan:
   stage: security
-  image: zricethezav/gitleaks:latest
+  image: zricethezav/gitleaks:8.18.1
   script:
     - gitleaks detect --source . --report-format json --report-path gitleaks-report.json
     - gitleaks detect --source . --verbose
@@ -202,6 +202,18 @@ spec:
             limits:
               cpu: "1"
               memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
       volumes:
         - name: data
           emptyDir: {}
@@ -220,6 +232,20 @@ spec:
       name: http
     - port: 8443
       name: grpc
+```
+
+```yaml
+# trivy-pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: trivy-pdb
+  namespace: security
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: trivy-server
 ```
 
 ### 3.2 Trivy 完整扫描脚本
@@ -543,7 +569,7 @@ falcosidekick:
 # 资源配置
 resources:
   requests:
-    cpu: 100m
+    cpu: 200m
     memory: 256Mi
   limits:
     cpu: 500m
@@ -562,7 +588,7 @@ replicas: 3
 
 resources:
   requests:
-    cpu: 100m
+    cpu: 200m
     memory: 256Mi
   limits:
     cpu: 500m
